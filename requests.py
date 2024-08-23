@@ -22,6 +22,6 @@ def create_club_tag(club_id: str, name: str, color: str):
 
 if __name__ == "__main__":
     club_id = generate_guid()
-    name = generate_random_string()
-    color = generate_random_string()
-    create_club_tag(club_id,name,color)
+    name = generate_random_string(12)
+    color = generate_random_string(5)
+    create_club_tag(club_id, name, color)
