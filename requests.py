@@ -19,6 +19,7 @@ def create_club_tag(club_id: str, name: str, color: str):
             print(e)
             return "Error create_club_tag()"
 
+
 if __name__ == "__main__":
     club_id = generate_guid()
     name = generate_random_string()
