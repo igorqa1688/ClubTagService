@@ -43,5 +43,8 @@ if __name__ == "__main__":
     color = generate_random_string(5)
     created_tag = create_club_tag(club_guid, name, color)
     created_tag_guid = created_tag.tag.guid.value
+    new_name = generate_random_string(12)
+    new_color = generate_random_string(9)
+    print(f"{new_name}\n{new_color}")
     print(created_tag_guid)
-    print(update_club_tag(created_tag_guid, name, color))
+    print(update_club_tag(created_tag_guid, new_name, new_color))
