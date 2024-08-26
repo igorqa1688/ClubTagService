@@ -1,6 +1,7 @@
 import grpc
 import uuid
 import random
+import string
 from global_vars import server
 
 
@@ -16,7 +17,7 @@ def grpc_channel():
 
 
 # Генерация случайной строки
-def generate_random_string(length):
+def generate_random_string(length: int) -> str:
     # Определяем необходимые наборы символов
     lower_chars = 'abcdefghijklmnopqrstuvwxyz'
     upper_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -37,3 +38,11 @@ def generate_random_string(length):
     random_string = ''.join(random.sample(result, len(result)))
     # Перемешиваем символы
     return random_string
+
+
+def generate_hex_color() -> str:
+    letters = string.hexdigits[:16]
+    color = '#'
+    for _ in range(6):
+        color += random.choice(letters)
+    return color
