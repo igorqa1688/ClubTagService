@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "TagService";
+option csharp_namespace = "TagServiceGrpc";
 
 import "google/protobuf/empty.proto";
 
@@ -14,7 +14,7 @@ service TagService {
   /*
   Обновить тэг в клубе (имя и цвет)
    */
-  rpc UpdateClubTag (TagModel) returns (google.protobuf.Empty);
+  rpc UpdateClubTag (UpdateClubTagRequest) returns (TagModel);
   /*
   Удалить тэг
    */
@@ -36,7 +36,7 @@ message GUID {
 
 message TagModel {
   GUID guid = 1;
-  string club_id = 2;
+  GUID club_guid = 2;
   string name = 3;
   string color = 4;
 }
@@ -46,9 +46,15 @@ message TagList {
 }
 
 message CreateClubTagRequest {
-  string club_id = 1;
+  GUID club_guid = 1;
   string name = 2;
   string color = 3;
+}
+
+message UpdateClubTagRequest {
+  GUID guid = 1;
+  string name = 3;
+  string color = 4;
 }
 
 message RemoveTagRequest {
@@ -60,7 +66,7 @@ message CreateClubTagResponse {
 }
 
 message GetClubTagsRequest {
-  string club_id = 1;
+  GUID club_guid = 1;
 }
 
 message GetTagRequest {
