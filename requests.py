@@ -47,8 +47,7 @@ def get_tag(tag_guid: str):
             response = stub.GetTag(request)
             return response
         except Exception as e:
-            print(e)
-            return "Error get_tag()"
+            return e
 
 
 def get_club_tags(club_guid: str):
@@ -65,11 +64,30 @@ def get_club_tags(club_guid: str):
             return "Error get_club_tags()"
 
 
+def remove_tag(tag_guid: str):
+    with grpc.insecure_channel(server) as channel:
+        stub = tag_service_pb2_grpc.TagServiceStub(channel)
+
+        request = tag_service_pb2.RemoveTagRequest(
+            tag_id=tag_service_pb2.GUID(value=f"{tag_guid}"))
+        try:
+            response = stub.RemoveTag(request)
+            return response
+        except Exception as e:
+            print(e)
+            return "Error remove_tag()"
+
+
 if __name__ == "__main__":
     club_guid = generate_guid()
+    tags = []
     for i in range(5):
         name = generate_random_string(12)
         color = generate_random_string(5)
         created_tag = create_club_tag(club_guid, name, color)
+        tag_guid = created_tag.tag.guid.value
+        tags.append((created_tag))
+
     created_tag_guid = created_tag.tag.guid.value
-    print(get_club_tags(club_guid))
+    print(created_tag)
+    print(remove_tag(tag_guid))
