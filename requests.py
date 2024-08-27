@@ -18,7 +18,7 @@ def create_club_tag(club_guid: str, name: str, color: str):
             return response
         except Exception as e:
             print(e)
-            return "Error create_club_tag()"
+            return e
 
 
 def update_club_tag(guid: str, name: str, color: str):
@@ -34,7 +34,7 @@ def update_club_tag(guid: str, name: str, color: str):
             return response
         except Exception as e:
             print(e)
-            return "Error update_club_tag()"
+            return e
 
 
 def get_tag(tag_guid: str):
@@ -61,7 +61,7 @@ def get_club_tags(club_guid: str):
             return response
         except Exception as e:
             print(e)
-            return "Error get_club_tags()"
+            return e
 
 
 def remove_tag(tag_guid: str):
@@ -75,7 +75,7 @@ def remove_tag(tag_guid: str):
             return response
         except Exception as e:
             print(e)
-            return "Error remove_tag()"
+            return e
 
 
 if __name__ == "__main__":

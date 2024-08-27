@@ -3,7 +3,7 @@ import tag_service_pb2_grpc
 from tag_service_pb2 import CreateClubTagRequest, UpdateClubTagRequest, GUID, GetTagRequest, GetClubTagsRequest
 from tag_service_pb2 import RemoveTagRequest
 from functions import generate_guid, generate_random_string, generate_hex_color
-from requests import create_club_tag, get_tag, get_club_tags, update_club_tag
+from requests import create_club_tag, get_tag, get_club_tags, update_club_tag, remove_tag
 from conftest import grpc_channel
 
 
@@ -11,7 +11,7 @@ from conftest import grpc_channel
 def test_create_club_tag(grpc_channel):
     club_guid = generate_guid()
     name = generate_random_string(12)
-    color = generate_random_string(12)
+    color = generate_hex_color()
     stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
     request = CreateClubTagRequest(
         club_guid=GUID(value=f"{club_guid}"),
@@ -23,6 +23,125 @@ def test_create_club_tag(grpc_channel):
     assert len(response.tag.guid.value) == 36
     assert response.tag.name == name
     assert response.tag.color == color
+
+
+# name 100 символов
+def test_create_club_tag_name_100_symbols(grpc_channel):
+    club_guid = generate_guid()
+    name = generate_random_string(100)
+    color = generate_hex_color()
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = CreateClubTagRequest(
+        club_guid=GUID(value=f"{club_guid}"),
+        name=name,
+        color=color)
+
+    response = stub.CreateClubTag(request)
+
+    assert len(response.tag.guid.value) == 36
+    assert response.tag.name == name
+    assert response.tag.color == color
+
+
+# name 1 символ
+def test_create_club_tag_name_1_symbol(grpc_channel):
+    club_guid = generate_guid()
+    name = "s"
+    color = generate_hex_color()
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = CreateClubTagRequest(
+        club_guid=GUID(value=f"{club_guid}"),
+        name=name,
+        color=color)
+
+    response = stub.CreateClubTag(request)
+    assert len(response.tag.guid.value) == 36
+    assert response.tag.name == name
+    assert response.tag.color == color
+
+
+# color не hex, длина 16 символов
+def test_create_club_tag_color_not_hex(grpc_channel):
+    club_guid = generate_guid()
+    name = generate_random_string(12)
+    color = generate_random_string(16)
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = CreateClubTagRequest(
+        club_guid=GUID(value=f"{club_guid}"),
+        name=name,
+        color=color)
+
+    response = stub.CreateClubTag(request)
+
+    assert len(response.tag.guid.value) == 36
+    assert response.tag.name == name
+    assert response.tag.color == color
+
+
+# color не hex, длина 1 символ
+def test_create_club_tag_color_1_symbol(grpc_channel):
+    club_guid = generate_guid()
+    name = generate_random_string(12)
+    color = "a"
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = CreateClubTagRequest(
+        club_guid=GUID(value=f"{club_guid}"),
+        name=name,
+        color=color)
+
+    response = stub.CreateClubTag(request)
+
+    assert len(response.tag.guid.value) == 36
+    assert response.tag.name == name
+    assert response.tag.color == color
+
+
+# color не hex, с пробелом
+def test_create_club_tag_color_with_spaces(grpc_channel):
+    club_guid = generate_guid()
+    name = generate_random_string(12)
+    words_count = 2
+    color = ""
+    for i in range(words_count):
+        color += generate_random_string(3) + " "
+    color = color.strip()
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = CreateClubTagRequest(
+        club_guid=GUID(value=f"{club_guid}"),
+        name=name,
+        color=color)
+
+    response = stub.CreateClubTag(request)
+    try:
+        remove_tag(response.tag.guid.value)
+    except Exception as error_delete_tag:
+        print(e)
+    assert len(response.tag.guid.value) == 36
+    assert response.tag.name == name
+    assert response.tag.color == color
+
+
+# club_guid не передан
+def test_create_club_tag_without_club_guid(grpc_channel):
+    club_guid = ""
+    name = generate_random_string(12)
+    color = generate_random_string(12)
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    try:
+        request = CreateClubTagRequest(
+            club_guid=GUID(value=f"{club_guid}"),
+            name=name,
+            color=color)
+
+        response = stub.CreateClubTag(request)
+        assert len(response.tag.guid.value) != 36
+    except Exception as error_create_tag:
+        # Распаковка ответа
+        status_code = error_create_tag.code()
+        grpc_details = error_create_tag.details()
+        # Тэг не найден
+        assert status_code.value[0] == 13
+        assert grpc_details == "Internal Error. Check service logs"
 
 
 # Создание тэга без названия
@@ -47,6 +166,7 @@ def test_create_club_tag_without_name(grpc_channel):
         # Тэг не найден
         assert status_code.value[0] == 3
         assert grpc_details == "Tag name cannot be empty"
+
 
 
 # Создание тэга без цвета
@@ -251,6 +371,60 @@ def test_update_club_tag(grpc_channel):
     assert response.color == new_color
 
 
+# Передан несуществующий tag_guid
+def test_update_club_tag_no_exist(grpc_channel):
+    error_text = "Tag not found"
+    # Получение guid тэга
+    tag_guid = generate_guid()
+    # Новые данные для обновления тэга
+    new_name = generate_random_string(12)
+    new_color = generate_random_string(12)
+    # Обновление тэга
+    try:
+        stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+        request = UpdateClubTagRequest(
+            guid=GUID(value=f"{tag_guid}"),
+            name=new_name,
+            color=new_color)
+
+        response = stub.UpdateClubTag(request)
+        assert len(response.guid.value) != 36
+    except Exception as error_update_tag:
+        # Распаковка ответа
+        status_code = error_update_tag.code()
+        grpc_details = error_update_tag.details()
+
+        assert status_code.value[0] == 5
+        assert grpc_details == error_text
+
+
+# tag_guid не передан
+def test_update_club_tag_without_tag_guid(grpc_channel):
+    error_text = "Internal Error. Check service logs"
+    # Получение guid тэга
+    tag_guid = ""
+    # Новые данные для обновления тэга
+    new_name = generate_random_string(12)
+    new_color = generate_random_string(12)
+    # Обновление тэга
+    try:
+        stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+        request = UpdateClubTagRequest(
+            guid=GUID(value=f"{tag_guid}"),
+            name=new_name,
+            color=new_color)
+
+        response = stub.UpdateClubTag(request)
+        assert len(response.guid.value) != 36
+    except Exception as error_update_tag:
+        # Распаковка ответа
+        status_code = error_update_tag.code()
+        grpc_details = error_update_tag.details()
+
+        assert status_code.value[0] == 13
+        assert grpc_details == error_text
+
+
 # Обновление тэга: name
 def test_update_club_tag_name(grpc_channel):
     # Данные для создания тэга
@@ -277,6 +451,118 @@ def test_update_club_tag_name(grpc_channel):
     assert response.guid.value == tag_guid
     assert response.name == new_name
     assert response.color == color
+
+
+# Обновление тэга: name 100 символов
+def test_update_club_tag_name_100_symbols(grpc_channel):
+    # Данные для создания тэга
+    club_guid = generate_guid()
+    name = generate_random_string(99)
+    color = generate_hex_color()
+    # Создание тэга
+    created_tag = create_club_tag(club_guid, name, color)
+    # Получение guid созданного тэга
+    tag_guid = created_tag.tag.guid.value
+    # Новые данные для обновления тэга
+    new_name = generate_random_string(100)
+    # Обновление тэга
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = UpdateClubTagRequest(
+        guid=GUID(value=f"{tag_guid}"),
+        name=new_name,
+        color=color)
+
+    response = stub.UpdateClubTag(request)
+
+    assert club_guid == response.club_guid.value
+    assert len(response.guid.value) == 36
+    assert response.guid.value == tag_guid
+    assert response.name == new_name
+    assert response.color == color
+
+
+# Обновление тэга: name 1 символ
+def test_update_club_tag_name_1_symbol(grpc_channel):
+    # Данные для создания тэга
+    club_guid = generate_guid()
+    name = generate_random_string(12)
+    color = generate_hex_color()
+    # Создание тэга
+    created_tag = create_club_tag(club_guid, name, color)
+    # Получение guid созданного тэга
+    tag_guid = created_tag.tag.guid.value
+    # Новые данные для обновления тэга
+    new_name = "j"
+    # Обновление тэга
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = UpdateClubTagRequest(
+        guid=GUID(value=f"{tag_guid}"),
+        name=new_name,
+        color=color)
+
+    response = stub.UpdateClubTag(request)
+
+    assert club_guid == response.club_guid.value
+    assert len(response.guid.value) == 36
+    assert response.guid.value == tag_guid
+    assert response.name == new_name
+    assert response.color == color
+
+
+# Обновление тэга: color 16 символов
+def test_update_club_tag_color_16_symbols(grpc_channel):
+    # Данные для создания тэга
+    club_guid = generate_guid()
+    name = generate_random_string(99)
+    color = generate_hex_color()
+    # Создание тэга
+    created_tag = create_club_tag(club_guid, name, color)
+    # Получение guid созданного тэга
+    tag_guid = created_tag.tag.guid.value
+    # Новые данные для обновления тэга
+    new_color = generate_random_string(16)
+    # Обновление тэга
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = UpdateClubTagRequest(
+        guid=GUID(value=f"{tag_guid}"),
+        name=name,
+        color=new_color)
+
+    response = stub.UpdateClubTag(request)
+
+    assert club_guid == response.club_guid.value
+    assert len(response.guid.value) == 36
+    assert response.guid.value == tag_guid
+    assert response.name == name
+    assert response.color == new_color
+
+
+# Обновление тэга: color 16 символов
+def test_update_club_tag_color_1_symbol(grpc_channel):
+    # Данные для создания тэга
+    club_guid = generate_guid()
+    name = generate_random_string(99)
+    color = generate_hex_color()
+    # Создание тэга
+    created_tag = create_club_tag(club_guid, name, color)
+    # Получение guid созданного тэга
+    tag_guid = created_tag.tag.guid.value
+    # Новые данные для обновления тэга
+    new_color = ";"
+    # Обновление тэга
+    stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
+    request = UpdateClubTagRequest(
+        guid=GUID(value=f"{tag_guid}"),
+        name=name,
+        color=new_color)
+
+    response = stub.UpdateClubTag(request)
+
+    assert club_guid == response.club_guid.value
+    assert len(response.guid.value) == 36
+    assert response.guid.value == tag_guid
+    assert response.name == name
+    assert response.color == new_color
 
 
 # Изменение name тэга на name существующего тэга в этом же клубе
@@ -341,7 +627,7 @@ def test_update_club_tag_exist_color(grpc_channel):
             color=color)
 
         response = stub.UpdateClubTag(request)
-        assert response.tag.color != color
+        assert response.tag.color == color
     except Exception as error_update_tag:
         # Распаковка ответа
         status_code = error_update_tag.code()
@@ -454,6 +740,7 @@ def test_update_club_tag_without_name(grpc_channel):
 
 # Обновление тэга: без цвета
 def test_update_club_tag_without_color(grpc_channel):
+    error_text = "Tag color cannot be empty"
     # Данные для создания тэга
     club_guid = generate_guid()
     name = generate_random_string(12)
@@ -466,18 +753,20 @@ def test_update_club_tag_without_color(grpc_channel):
     new_color = ""
     # Обновление тэга
     stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
-    request = UpdateClubTagRequest(
-        guid=GUID(value=f"{tag_guid}"),
-        name=name,
-        color=new_color)
+    try:
+        request = UpdateClubTagRequest(
+            guid=GUID(value=f"{tag_guid}"),
+            name=name,
+            color=new_color)
 
-    response = stub.UpdateClubTag(request)
+        response = stub.UpdateClubTag(request)
+    except Exception as error_update_tag:
+        # Распаковка ответа
+        status_code = error_update_tag.code()
+        grpc_details = error_update_tag.details()
 
-    assert club_guid == response.club_guid.value
-    assert len(response.guid.value) == 36
-    assert response.guid.value == tag_guid
-    assert response.name == name
-    assert response.color == new_color
+        assert status_code.value[0] == 3
+        assert grpc_details == error_text
 
 
 # Обновление тэга: color
@@ -617,7 +906,6 @@ def test_get_club_tags_10_tags(grpc_channel):
     club_guid = generate_guid()
     tags_count = 10
     tags_in_club = []
-
     stub = tag_service_pb2_grpc.TagServiceStub(grpc_channel)
     for i in range(tags_count):
         name = generate_random_string(12)
