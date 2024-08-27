@@ -759,6 +759,7 @@ def test_update_club_tag_without_color(grpc_channel):
             color=new_color)
 
         response = stub.UpdateClubTag(request)
+        assert response.tag.guid.value != 36
     except Exception as error_update_tag:
         # Распаковка ответа
         status_code = error_update_tag.code()
