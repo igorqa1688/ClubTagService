@@ -168,7 +168,6 @@ def test_create_club_tag_without_name(grpc_channel):
         assert grpc_details == "Tag name cannot be empty"
 
 
-
 # Создание тэга без цвета
 def test_create_club_tag_without_color(grpc_channel):
     club_guid = generate_guid()
@@ -898,6 +897,89 @@ def test_get_club_tags_2_tags(grpc_channel):
         assert tag_color == created_tags[i].color
 
     assert len(created_tags) == tags_count
+
+
+# В клубе 2 тэга с одним названием но разным регистром
+def test_create_club_tags_2_name_different_register():
+    # Данные для создания тэга
+    club_guid = generate_guid()
+
+    name = generate_random_string(12)
+    name = name.upper()
+    color = generate_hex_color()
+    # Создание первого тэга
+    create_club_tag(club_guid, name, color)
+
+    second_tag = create_club_tag(club_guid, name.lower(), generate_hex_color())
+
+    assert len(second_tag.tag.guid.value) == 36
+    assert second_tag.tag.name == name.lower()
+
+
+# Обновление тэга. В клубе 2 тэга с одним названием но разным регистром
+def test_update_club_tags_2_name_different_register():
+    # Данные для создания тэга
+    club_guid = generate_guid()
+
+    tags_in_club = []
+    # Создание первого тэга
+    for i in range(2):
+        # name всех создаваемых тэгов приводятся к нижнему регистру
+        name = generate_random_string(12).lower()
+        tags_in_club.append(create_club_tag(club_guid, name, generate_hex_color()))
+
+    # Получение name первого тэга в клубе
+    tag_name_first = tags_in_club[0].tag.name
+    # Приведение полученного имени к верхнему регистру
+    tag_name_upper = tag_name_first.upper()
+    # Получение guid второго тэга в клубе, guid тэга для обновления
+    tag_guid_second = tags_in_club[1].tag.guid.value
+    # Обновление второго тэга с присвоением тэгу name первого тэга в uppercase
+    updated_tag = update_club_tag(tag_guid_second, tag_name_upper, generate_hex_color())
+
+    assert updated_tag.name == tag_name_upper
+
+
+# Обновление тэга. В клубе 2 тэга с одним color но разным регистром
+def test_update_club_tags_2_color_different_register():
+    # Данные для создания тэга
+    club_guid = generate_guid()
+
+    tags_in_club = []
+    # Создание первого тэга
+    for i in range(2):
+        # color всех создаваемых тэгов приводятся к нижнему регистру
+        color = generate_hex_color().lower()
+        tags_in_club.append(create_club_tag(club_guid, generate_random_string(10), color))
+
+    # Получение color первого тэга в клубе
+    tag_color_first = tags_in_club[0].tag.color
+    # Приведение полученного color к верхнему регистру
+    tag_color_upper = tag_color_first.upper()
+    # Получение guid второго тэга в клубе, guid тэга для обновления
+    tag_guid_second = tags_in_club[1].tag.guid.value
+    # Обновление второго тэга с присвоением тэгу color первого тэга в uppercase
+    updated_tag = update_club_tag(tag_guid_second, tags_in_club[1].tag.name, tag_color_upper)
+
+    assert updated_tag.color == tag_color_upper
+
+
+# В клубе 2 тэга с одним цветом но цвет в разном регистре
+def test_create_club_tags_2_color_different_register():
+    # Данные для создания тэга
+    club_guid = generate_guid()
+
+    name = generate_random_string(12)
+    name = name.upper()
+    color = generate_hex_color()
+    color = color.lower()
+    # Создание первого тэга
+    create_club_tag(club_guid, name, color)
+
+    second_tag = create_club_tag(club_guid, generate_random_string(12), color.upper())
+
+    assert len(second_tag.tag.guid.value) == 36
+    assert second_tag.tag.color == color.upper()
 
 
 # В клубе 10 тэгов
