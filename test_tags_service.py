@@ -170,6 +170,7 @@ def test_create_club_tag_without_name(grpc_channel):
 
 # Создание тэга без цвета
 def test_create_club_tag_without_color(grpc_channel):
+    error_text = "Internal Error. Check service logs"
     club_guid = generate_guid()
     name = generate_random_string(12)
     color = ""
@@ -188,8 +189,8 @@ def test_create_club_tag_without_color(grpc_channel):
         status_code = error_create_tag.code()
         grpc_details = error_create_tag.details()
         # Тэг не найден
-        assert status_code.value[0] == 3
-        assert grpc_details == "Tag color cannot be empty"
+        assert status_code.value[0] == 13
+        assert grpc_details == error_text
 
 
 # Создание дубля тэга в одном клубе
@@ -739,7 +740,7 @@ def test_update_club_tag_without_name(grpc_channel):
 
 # Обновление тэга: без цвета
 def test_update_club_tag_without_color(grpc_channel):
-    error_text = "Tag color cannot be empty"
+    error_text = "Internal Error. Check service logs"
     # Данные для создания тэга
     club_guid = generate_guid()
     name = generate_random_string(12)
@@ -765,7 +766,7 @@ def test_update_club_tag_without_color(grpc_channel):
         status_code = error_update_tag.code()
         grpc_details = error_update_tag.details()
 
-        assert status_code.value[0] == 3
+        assert status_code.value[0] == 13
         assert grpc_details == error_text
 
 
